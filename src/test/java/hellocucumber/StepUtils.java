@@ -16,13 +16,37 @@ import java.nio.charset.StandardCharsets;
 
 public class StepUtils {
 
-    public static String callApi(String operation, String body) throws IOException {
+    public static String callApiPost(String operation, String body) throws IOException {
 
-        return Request.Post("http://localhost:8080/" + operation)
+        return Request.Post("http://localhost:9001/" + operation)
                 .useExpectContinue()
                 .addHeader("Content-Type", "application/json")
                 .version(HttpVersion.HTTP_1_1)
                 .bodyString(body, ContentType.DEFAULT_TEXT)
+                .execute().handleResponse(new ResponseHandler<String>() {
+
+                    public String handleResponse(final HttpResponse response) throws IOException {
+                        StatusLine statusLine = response.getStatusLine();
+                        HttpEntity entity = response.getEntity();
+                        if (statusLine.getStatusCode() >= 300) {
+                            throw new HttpResponseException(
+                                    statusLine.getStatusCode(),
+                                    statusLine.getReasonPhrase());
+                        }
+                        if (entity == null) {
+                            throw new ClientProtocolException("Response contains no content");
+                        }
+                        return IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8.name());
+                    }
+
+                });
+    }
+    public static String callApiGet(String operation) throws IOException {
+
+        return Request.Get("http://localhost:9001/" + operation)
+                .useExpectContinue()
+                .addHeader("Content-Type", "application/json")
+                .version(HttpVersion.HTTP_1_1)
                 .execute().handleResponse(new ResponseHandler<String>() {
 
                     public String handleResponse(final HttpResponse response) throws IOException {
